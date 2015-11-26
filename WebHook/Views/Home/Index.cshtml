@@ -1,0 +1,87 @@
+﻿<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/styles/railscasts.min.css">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/animate.css/3.4.0/animate.min.css">
+<script src="~/Scripts/jquery-1.10.2.min.js"></script>
+<script src="~/Scripts/jquery.signalR-2.2.0.min.js"></script>
+<script src="~/signalr/hubs"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.7/highlight.min.js"></script>
+
+
+<row>
+    <div id="error"></div>
+    <div class="jumbotron" style="margin-top:15px">
+        <h1>Get Started</h1>
+        <h3>Post to:</h3>
+        <h4 id="getStarted"></h4>
+    </div>
+</row>
+<row>
+    <table class="table" style="display: none;">
+        <thead>
+            <tr>
+                <td>
+                    <h3>From</h3>
+                </td>
+                <td>
+                    <h3>Content Body</h3>
+                </td>
+            </tr>
+        </thead>
+        <tbody id="rowResult"></tbody>
+    </table>
+</row>
+<script type="text/javascript">
+    $('#getStarted').text(window.location.origin + "/api/webhook");
+
+    var final = "";
+    var errors = "";
+
+    $(function () {
+        var progressNotifier = $.connection.progressHub;
+
+        progressNotifier.client.sendMessage = function (message) {
+            UpdateEvent(message);
+        };
+
+        $.connection.hub.start().done(function () {
+        });
+    });
+
+    function UpdateEvent(message) {
+        if (message != 'undefined') {
+            var result;
+            var address;
+            var content;
+            result = JSON.parse(message);
+            address = result.ClientAddress;
+            content = result.ContentBody;
+
+            if ($('.jumbotron').is(":visible")) {
+                $('.jumbotron').hide();
+                $('.table').show();
+            }
+
+            try {
+                content = JSON.parse(content);
+                content = JSON.stringify(content, null, 2);
+            } catch (e) {
+                errors = '<div class="alert alert-danger fade in"><a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a><strong>Warning! </strong>' + 'Not valid JSON; ' + e + '</div>' + errors;
+                console.log("Not valid JSON; " + e);
+                $("#error").html(errors);
+                window.setTimeout(function () {
+                    $(".alert-danger").alert('close');
+                    errors = "";
+                }, 2000);
+            }
+            //add new row to beginning of html
+            final = "<tr><td><h4>" + address + "</h4></td>" + "<td><pre><code>" + content + "</code></pre></td></tr>" + final;
+            $("#rowResult").html(final);
+            //add animated class to first row in table
+            $("tr").eq(1).addClass('animated slideInLeft');
+            //update highlig
+            $('pre code').each(function (i, block) {
+                hljs.highlightBlock(block);
+            });
+        }
+    }
+
+</script>
